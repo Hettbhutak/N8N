@@ -1,0 +1,137 @@
+{
+  "name": "Daily Business News (Fixed XML)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 9,
+              "minute": 0
+            }
+          ]
+        }
+      },
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
+        "responseFormat": "string"
+      },
+      "name": "Fetch RSS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "propertyName": "body",
+        "options": {
+          "explicitArray": true
+        }
+      },
+      "name": "Parse XML",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const items = $json.rss.channel[0].item;\n\nreturn items.map(i => ({\n  json: {\n    title: i.title[0],\n    link: i.link[0],\n    pubDate: new Date(i.pubDate[0])\n  }\n}));"
+      },
+      "name": "Extract News Items",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "dateTime": [
+            {
+              "value1": "={{$json[\"pubDate\"]}}",
+              "operation": "after",
+              "value2": "={{$now.minus({ hours: 24 })}}"
+            }
+          ]
+        }
+      },
+      "name": "Filter Last 24 Hours",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "let report = `📊 Daily Business News Report\\n📅 ${new Date().toDateString()}\\n\\n`;\n\nitems.forEach((item, index) => {\n  report += `${index + 1}. ${item.json.title}\\n`;\n  report += `Link: ${item.json.link}\\n\\n`;\n});\n\nreturn [{ json: { report } }];"
+      },
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS": {
+      "main": [
+        [
+          {
+            "node": "Parse XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse XML": {
+      "main": [
+        [
+          {
+            "node": "Extract News Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract News Items": {
+      "main": [
+        [
+          {
+            "node": "Filter Last 24 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Last 24 Hours": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false
+}
