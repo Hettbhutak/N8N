@@ -1,0 +1,223 @@
+{
+  "name": "Daily Business News (Fixed XML)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 9
+            }
+          ]
+        }
+      },
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        2816,
+        -208
+      ],
+      "id": "27a48dce-03f8-4ef9-8303-0295d4086012"
+    },
+    {
+      "parameters": {
+        "url": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
+        "options": {}
+      },
+      "name": "Fetch RSS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        3040,
+        -208
+      ],
+      "id": "5449bac5-3e30-49ef-8ada-98fe6b30afcb"
+    },
+    {
+      "parameters": {
+        "options": {
+          "explicitArray": true
+        }
+      },
+      "name": "Parse XML",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        3264,
+        -208
+      ],
+      "id": "02e6ffce-24b3-4511-a5d9-03d822f6cd1e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "dateTime": [
+            {
+              "value1": "={{$json[\"pubDate\"]}}",
+              "value2": "={{$now.minus({ hours: 24 })}}"
+            }
+          ]
+        }
+      },
+      "name": "Filter Last 24 Hours",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        3776,
+        -320
+      ],
+      "id": "e38c7d39-6b99-43d6-90be-dd37e535abdb"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $json.rss.channel[0].item;\n\nreturn items.map(i => ({\n  json: {\n    title: i.title[0],\n    link: i.link[0],\n    pubDate: new Date(i.pubDate[0])\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3488,
+        -176
+      ],
+      "id": "7734fdf6-1d3c-47fa-9108-31c0f486df35",
+      "name": "Extract News"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);\n\nconst recentNews = items.filter(item => {\n  return new Date(item.json.pubDate) >= last24h;\n});\n\nlet report = `📊 Daily Business News Report\\n📅 ${now.toDateString()}\\n\\n`;\n\nif (recentNews.length === 0) {\n  report += \"No new business news found in the last 24 hours.\\n\";\n} else {\n  recentNews.forEach((item, index) => {\n    report += `${index + 1}. ${item.json.title}\\n`;\n    report += `Link: ${item.json.link}\\n\\n`;\n  });\n}\n\nreturn [\n  {\n    json: {\n      report\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4064,
+        -432
+      ],
+      "id": "8027f72e-68e4-4f20-bb09-5f867a7232e6",
+      "name": "Genrate Report"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2e78e480-3a24-80bc-b88b-d621b8b210a1",
+          "mode": "list",
+          "cachedResultName": "News Report ",
+          "cachedResultUrl": "https://www.notion.so/2e78e4803a2480bcb88bd621b8b210a1"
+        },
+        "title": "Daily News Report",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Text|rich_text"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "textContent": "={{$json.report}}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        4320,
+        -304
+      ],
+      "id": "0667f40f-b37b-4814-94ec-9d919c40e8a5",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "JwTtYO7vLLvbvKrB",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS": {
+      "main": [
+        [
+          {
+            "node": "Parse XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Last 24 Hours": {
+      "main": [
+        [
+          {
+            "node": "Genrate Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Parse XML": {
+      "main": [
+        [
+          {
+            "node": "Extract News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract News": {
+      "main": [
+        [
+          {
+            "node": "Filter Last 24 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Genrate Report": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8b8b11cf-d97d-4f93-8c56-4cb4878fd0f9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eb93375dbb4b26e5bd19de5869e7d7bcca441927c956c56f93fbc8673c90f1b1"
+  },
+  "id": "3damW9X8NGPTAeBr",
+  "tags": []
+}
