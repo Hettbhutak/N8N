@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 9 * * 1"
+      },
+      "name": "Weekly Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "YOUR_SHEET_ID",
+        "range": "Subscribers!A:A"
+      },
+      "name": "Get Subscribers",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "name": "Split Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "your@email.com",
+        "toEmail": "={{$json.email}}",
+        "subject": "Weekly Update 📰",
+        "text": "Here are this week's updates..."
+      },
+      "name": "Send Newsletter",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [860, 300]
+    }
+  ],
+  "connections": {
+    "Weekly Cron": {
+      "main": [[{ "node": "Get Subscribers", "type": "main", "index": 0 }]]
+    },
+    "Get Subscribers": {
+      "main": [[{ "node": "Split Emails", "type": "main", "index": 0 }]]
+    },
+    "Split Emails": {
+      "main": [[{ "node": "Send Newsletter", "type": "main", "index": 0 }]]
+    }
+  }
+}
