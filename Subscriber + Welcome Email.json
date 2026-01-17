@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "newsletter-subscribe",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "email",
+              "value": "={{$json.email}}"
+            }
+          ]
+        }
+      },
+      "name": "Set Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "YOUR_SHEET_ID",
+        "range": "Subscribers!A:A",
+        "options": {}
+      },
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [640, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "your@email.com",
+        "toEmail": "={{$json.email}}",
+        "subject": "Welcome to Our Newsletter 🚀",
+        "text": "Thanks for subscribing! You’ll now receive our updates."
+      },
+      "name": "Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [860, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Set Email", "type": "main", "index": 0 }]]
+    },
+    "Set Email": {
+      "main": [[{ "node": "Save to Google Sheet", "type": "main", "index": 0 }]]
+    },
+    "Save to Google Sheet": {
+      "main": [[{ "node": "Welcome Email", "type": "main", "index": 0 }]]
+    }
+  }
+}
