@@ -1,0 +1,140 @@
+{
+  "name": "Daily Startup Funding - FIXED",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "7ffeba9f-e9b3-4bdf-8f25-9ab5788bb128",
+      "name": "9AM Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization ",
+              "value": "Bearer (YOUR_OPENAI__API_KEYS)"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Generate markdown table of latest 24hr startup funding rounds. Columns: Startup | Description | Country | Industry | Amount Raised | Lead Investors | Company Link. Focus: AI, robotics, deeptech, India startups. Max 10 rows. Use real recent data.\"\n    }\n  ],\n  \"max_tokens\": 2000,\n  \"temperature\": 0.2\n}\n",
+        "options": {}
+      },
+      "id": "f3ea3524-605a-4213-8e67-a9072fc20853",
+      "name": "Get Funding Data1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1648,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.choices[0].message.content;\nreturn [{ json: {\n  subject: `Startup Funding - ${new Date().toLocaleDateString('en-IN')}`,\n  body: `<h3>Daily Funding Report</h3><pre style='white-space:pre-wrap'>${content}</pre>`\n}}];"
+      },
+      "id": "5c8fce2b-60d9-461a-9c4c-9101e593bf1d",
+      "name": "Format Email1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "bhutakhet@gmail.com",
+        "toEmail": "bhutakhet@gmail.com",
+        "subject": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2096,
+        -144
+      ],
+      "id": "6b8482b5-7b22-41c8-872f-43f8919f76c7",
+      "name": "Send email",
+      "webhookId": "20af4b40-698f-4fd0-a592-70ffe95e4ca0",
+      "credentials": {
+        "smtp": {
+          "id": "TuXT4aFB8lfJim2H",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Format Email1": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9AM Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get Funding Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Funding Data1": {
+      "main": [
+        [
+          {
+            "node": "Format Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b5f9f3ff-02c7-474a-a1c2-c33eeafa7828",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eb93375dbb4b26e5bd19de5869e7d7bcca441927c956c56f93fbc8673c90f1b1"
+  },
+  "id": "GLrZKOainlmYbKi2",
+  "tags": []
+}
